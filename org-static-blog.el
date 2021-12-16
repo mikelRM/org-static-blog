@@ -247,7 +247,7 @@ the variables `org-static-blog-preview-start' and
      ("ru" . "%d.%m.%Y")
      ("by" . "%d.%m.%Y")
      ("it" . "%d/%m/%Y")
-     ("es" . "%d/%m/%Y")
+     ("es" . "%Y-%m-%d")
      ("fr" . "%d-%m-%Y")
      ("zh" . "%Y-%m-%d")
      ("ja" . "%Y/%m/%d"))
@@ -510,6 +510,7 @@ e.g. `(('foo' 'file1.org' 'file2.org') ('bar' 'file2.org'))`"
         (search-forward "</p>")
         (buffer-substring-no-properties start (point))))))
 
+
 (defun org-static-blog-get-preview (post-filename)
   "Get title, date, tags from POST-FILENAME and get the first paragraph from the rendered HTML.
 If the HTML body contains multiple paragraphs, include only the first paragraph,
@@ -545,6 +546,30 @@ Preamble and Postamble are excluded, too."
          preview-region
          post-ellipsis
          (format "<div class=\"taglist\">%s</div>" post-taglist))))))
+
+
+(defun org-static-blog-get-preview-table (post-filename)
+  "Get title, date, tags from POST-FILENAME and generate a table
+with its date and title"
+  (with-temp-buffer
+    (insert-file-contents (org-static-blog-matching-publish-filename post-filename))
+    (let ((post-title (org-static-blog-get-title post-filename))
+          (post-date (org-static-blog-get-date post-filename))
+          (post-taglist (org-static-blog-post-taglist-table post-filename)))
+	  ;; Put the substrings together.
+	  (let ((title-link
+		 (format "<td class=\"post-element\"><a href=\"%s\">%s</a></td>"
+			 (org-static-blog-get-post-url post-filename) post-title))
+		(date-link
+		 (format-time-string
+		  "<td class=\"post-date\">%Y-%m-%d</td>" post-date)))
+            (concat
+	     "<tr>\n"
+             date-link
+	     "\n"
+	     title-link
+             ;; (format "<td class=\"post-tags\">%s</td>" post-taglist)
+	     "\n</tr>")))))
 
 
 (defun org-static-blog-get-body (post-filename &optional exclude-title)
@@ -692,6 +717,7 @@ posts as full text posts."
      (last post-filenames org-static-blog-index-length)
      org-static-blog-index-front-matter)))
 
+
 (defun org-static-blog-assemble-multipost-page (pub-filename post-filenames &optional front-matter)
   "Assemble a page that contains multiple posts one after another.
 Posts are sorted in descending time."
@@ -703,10 +729,13 @@ Posts are sorted in descending time."
     org-static-blog-publish-title
    (concat
     (when front-matter front-matter)
+    (when org-static-blog-use-preview "<table class=\"list-of-posts\">\n")
     (apply 'concat (mapcar
-                    (if org-static-blog-use-preview
-                        'org-static-blog-get-preview
-                      'org-static-blog-get-body) post-filenames))
+		    (if org-static-blog-use-preview
+			;;'org-static-blog-get-preview
+			'org-static-blog-get-preview-table
+		      'org-static-blog-get-body) post-filenames))
+    (when org-static-blog-use-preview "</table>\n")
     "<div id=\"archive\">\n"
     "<a href=\"" (org-static-blog-get-absolute-url org-static-blog-archive-file) "\">" (org-static-blog-gettext 'other-posts) "</a>\n"
     "</div>\n"))))
@@ -742,6 +771,21 @@ the taglist, in a <div id=\"taglist\">...</div> block."
                                       (org-static-blog-get-absolute-url (concat "tag-" (downcase tag) ".html"))
                                       "\">" tag "</a> "))))
     taglist-content))
+
+
+(defun org-static-blog-post-taglist-table (post-filename)
+  "Returns the tag list of the post.
+This part will be attached after the title of the post between
+parentheses, in a <div id=\"taglist\">(...)</div> block."
+  (let ((taglist-content "")
+        (tags (remove org-static-blog-rss-excluded-tag
+                      (org-static-blog-get-tags post-filename))))
+    (when (and tags org-static-blog-enable-tags)
+      (dolist (tag tags)
+        (setq taglist-content (concat taglist-content ":<a href=\""
+                                      (org-static-blog-get-absolute-url (concat "tag-" (downcase tag) ".html"))
+                                      "\">" tag "</a>"))))
+    (concat taglist-content ":")))
 
 
 (defun org-static-blog-post-postamble (post-filename)
@@ -844,21 +888,23 @@ The HTML content is taken from the rendered HTML post."
 
 (defun org-static-blog-assemble-archive ()
   "Re-render the blog archive page.
-The archive page contains single-line links and dates for every
-blog post, but no post body."
+The archive page contains single-line links, dates and tags for
+every blog post, but no post body."
   (let ((archive-filename (concat-to-dir org-static-blog-publish-directory org-static-blog-archive-file))
         (archive-entries nil)
         (post-filenames (org-static-blog-get-post-filenames)))
     (setq post-filenames (sort post-filenames (lambda (x y) (time-less-p
-                                                        (org-static-blog-get-date y)
-                                                        (org-static-blog-get-date x)))))
+                                                             (org-static-blog-get-date y)
+                                                             (org-static-blog-get-date x)))))
     (org-static-blog-with-find-file
      archive-filename
      (org-static-blog-template
       org-static-blog-publish-title
       (concat
        "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
-       (apply 'concat (mapcar 'org-static-blog-get-post-summary post-filenames)))))))
+       "<table class=\"list-of-posts\">"
+       (apply 'concat (mapcar 'org-static-blog-get-post-summary post-filenames))
+       "</table>")))))
 
 (defun org-static-blog-get-post-summary (post-filename)
   "Assemble post summary for an archive page.
@@ -866,12 +912,16 @@ This function is called for every post on the archive and
 tags-archive page. Modify this function if you want to change an
 archive headline."
   (concat
-   "<div class=\"post-date\">"
-   (format-time-string (org-static-blog-gettext 'date-format) (org-static-blog-get-date post-filename))
-   "</div>"
-   "<h2 class=\"post-title\">"
+   "<tr>\n"
+   "<td class=\"post-date\">"
+   (format-time-string "%Y-%m-%d" (org-static-blog-get-date post-filename))
+   "</td>\n"
+   "<td class=\"post-title\">"
    "<a href=\"" (org-static-blog-get-post-url post-filename) "\">" (org-static-blog-get-title post-filename) "</a>"
-   "</h2>\n"))
+   "</td>\n"
+   "<td class=\"post-tags\">"
+   (org-static-blog-post-taglist-table post-filename)
+   "</td>\n </tr>\n"))
 
 (defun org-static-blog-assemble-tags ()
   "Render the tag archive and tag pages."
