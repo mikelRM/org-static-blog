@@ -7,12 +7,18 @@ version at <2021-12-14 mar>). These are the *completed* and *wished* changes:
    
 
 ** TODO Changes
-   
-   - The list of posts in =index.html= and in the _general_ and _tag-restricted_
-     archives are formatted in a table where it is shown the publication date
-     and the title of the entry. This requires editing the definition of the
-     function [[file:org-static-blog.el::defun org-static-blog-get-preview][~org-static-blog-get-preview~]], by doubling it and editing it to
-     create the [[file:org-static-blog.el::defun org-static-blog-get-preview-table][~org-static-blog-get-preview-table~]] and using it.
 
-   - 
+   - Better organization of the different pages in the static blog:
+
+     #+begin_verse
+     html
+     |- index.html
+     |- archive.html
+     |- tag-archive.html
+     |- ...
+     |- posts
+        |- post1.html
+	|- post2.html
+	|- ...
+     #+end_verse
 
