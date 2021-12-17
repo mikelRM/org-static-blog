@@ -925,7 +925,7 @@ archive headline."
 
 (defun org-static-blog-assemble-tags ()
   "Render the tag archive and tag pages."
-  (org-static-blog-assemble-tags-archive)
+  (org-static-blog-assemble-tags-archive-noposts)
   (dolist (tag (org-static-blog-get-tag-tree))
     (org-static-blog-assemble-multipost-page
      (concat-to-dir org-static-blog-publish-directory
@@ -942,6 +942,16 @@ archive headline."
     (concat "<h1 class=\"tags-title\">" (org-static-blog-gettext 'posts-tagged) " \"" (downcase (car tag)) "\":</h1>\n"
 	    (apply 'concat (mapcar 'org-static-blog-get-post-summary post-filenames)))))
 
+(defun org-static-blog-assemble-tags-archive-tag-list (tag)
+  "Assemble single TAG for all filenames."
+  (let ((post-filenames (cdr tag)))
+    (format"<li class=\"tag-entry\"><a href=\"%s\"> %s </a> (%s) </li>\n"
+	   (concat org-static-blog-publish-url (downcase (car tag)))
+	   (downcase (car tag))
+	   (length (cdr tag)))))
+	   
+	   
+
 (defun org-static-blog-assemble-tags-archive ()
   "Assemble the blog tag archive page.
 The archive page contains single-line links and dates for every
@@ -956,6 +966,22 @@ blog post, sorted by tags, but no post body."
       (concat
        "<h1 class=\"title\">" (org-static-blog-gettext 'tags) "</h1>\n"
        (apply 'concat (mapcar 'org-static-blog-assemble-tags-archive-tag tag-tree)))))))
+
+(defun org-static-blog-assemble-tags-archive-noposts ()
+  "Assemble the blog tag archive page that lists all the tags in
+the blogs, together with the number of post at at each tag"
+  (let ((tags-archive-filename (concat-to-dir org-static-blog-publish-directory org-static-blog-tags-file))
+        (tag-tree (org-static-blog-get-tag-tree)))
+    (setq tag-tree (sort tag-tree (lambda (x y) (string-greaterp (car y) (car x)))))
+    (org-static-blog-with-find-file
+     tags-archive-filename
+     (org-static-blog-template
+      org-static-blog-publish-title
+      (concat
+       "<h1 class=\"title\">" (org-static-blog-gettext 'tags) "</h1>\n"
+       "<ul class=\"tags-list\">\n"
+       (apply 'concat (mapcar 'org-static-blog-assemble-tags-archive-tag-list tag-tree))
+       "</ul>\n")))))
 
 (defun org-static-blog-open-previous-post ()
   "Opens previous blog post."

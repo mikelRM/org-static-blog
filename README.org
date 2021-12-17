@@ -3,14 +3,15 @@
 This is just my tweaked version of [[https://github.com/mikelRM/org-static-blog][=org-static-blog=]] at its version 1.5.0 (last
 version at <2021-12-14 mar>). These are the *completed* and *wished* changes:
 
-** DONE Changes
+** Changes
    
 
-** TODO Changes
+** [0/2] Whishlist
 
-   - Better organization of the different pages in the static blog:
+   - [ ] 
 
-     #+begin_verse
+   - [ ] Better organization of the different pages in the static blog:
+     #+begin_export ascii
      html
      |- index.html
      |- archive.html
@@ -20,5 +21,5 @@ version at <2021-12-14 mar>). These are the *completed* and *wished* changes:
         |- post1.html
 	|- post2.html
 	|- ...
-     #+end_verse
+     #+end_export
 
