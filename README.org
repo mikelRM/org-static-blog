@@ -5,10 +5,24 @@ version at <2021-12-14 mar>). These are the *completed* and *wished* changes:
 
 ** Changes
    
+   - The post previews are shown in a table in =year= | =title= format.
+   - In =archive.html= the post table also has a column for the tag list.
+   - In =tags.html= only a list of categories is shown.
+
 
 ** [0/2] Whishlist
 
-   - [ ] 
+   - [ ] Group the posts in =archive.html= within publication years. 
+
+     #+begin_example
+     Para esto tego que crear una función (por ejemploo llamada 
+     =org-static-blog-get-year-tree=) que de una lista de =posts= 
+     devuelva una lista de la siguiente forma:
+     ( ("2021" (posts_2021)) ("2020" (posts_2020)) ... )
+
+     Dentro de cada año los posts estarán ordenados por fecha. Luego
+     podemos utilizar ese /tree/ para construir =archive.html=.
+     #+end_example
 
    - [ ] Better organization of the different pages in the static blog:
      #+begin_export ascii

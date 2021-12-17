@@ -886,13 +886,15 @@ The HTML content is taken from the rendered HTML post."
    "</pubDate>\n"
    "</item>\n"))
 
+
 (defun org-static-blog-assemble-archive ()
   "Re-render the blog archive page.
 The archive page contains single-line links, dates and tags for
 every blog post, but no post body."
   (let ((archive-filename (concat-to-dir org-static-blog-publish-directory org-static-blog-archive-file))
         (archive-entries nil)
-        (post-filenames (org-static-blog-get-post-filenames)))
+        (post-filenames (org-static-blog-get-post-filenames))
+	(current-year "0"))
     (setq post-filenames (sort post-filenames (lambda (x y) (time-less-p
                                                              (org-static-blog-get-date y)
                                                              (org-static-blog-get-date x)))))
@@ -903,8 +905,33 @@ every blog post, but no post body."
       (concat
        "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
        "<table class=\"list-of-posts\">"
-       (apply 'concat (mapcar 'org-static-blog-get-post-summary post-filenames))
+       (dolist (post post-filenames)
+	 (concat
+	  (when (not (equal current-year (format-time-string "%Y" (org-static-blog-get-date post))))
+	    (format "<h2 class=\"posts-year\"> %s </h2>" (format-time-string "%Y" (org-static-blog-get-date post))))
+	  (org-static-blog-get-post-summary post)))
        "</table>")))))
+
+;; (defun org-static-blog-assemble-archive ()
+;;   "Re-render the blog archive page.
+;; The archive page contains single-line links, dates and tags for
+;; every blog post, but no post body."
+;;   (let ((archive-filename (concat-to-dir org-static-blog-publish-directory org-static-blog-archive-file))
+;;         (archive-entries nil)
+;;         (post-filenames (org-static-blog-get-post-filenames))
+;; 	(current-year 0))
+;;     (setq post-filenames (sort post-filenames (lambda (x y) (time-less-p
+;;                                                              (org-static-blog-get-date y)
+;;                                                              (org-static-blog-get-date x)))))
+;;     (org-static-blog-with-find-file
+;;      archive-filename
+;;      (org-static-blog-template
+;;       org-static-blog-publish-title
+;;       (concat
+;;        "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
+;;        "<table class=\"list-of-posts\">"
+;;        (apply 'concat (mapcar 'org-static-blog-get-post-summary post-filenames))
+;;        "</table>")))))
 
 (defun org-static-blog-get-post-summary (post-filename)
   "Assemble post summary for an archive page.
