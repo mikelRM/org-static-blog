@@ -894,23 +894,30 @@ every blog post, but no post body."
   (let ((archive-filename (concat-to-dir org-static-blog-publish-directory org-static-blog-archive-file))
         (archive-entries nil)
         (post-filenames (org-static-blog-get-post-filenames))
-	(current-year "0"))
+	(current-year "0")
+	(archive-string ""))
     (setq post-filenames (sort post-filenames (lambda (x y) (time-less-p
                                                              (org-static-blog-get-date y)
                                                              (org-static-blog-get-date x)))))
+    (setq archive-string (concat "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
+				 "<table class=\"list-of-posts\">\n"))
+    (dolist (post post-filenames)
+      (when (not (equal current-year (format-time-string "%Y" (org-static-blog-get-date post))))
+	(setq archive-string
+	      (concat archive-string
+		      "</table>\n"
+		      (format "<h2 class=\"posts-year\"> %s </h2>\n" (format-time-string "%Y" (org-static-blog-get-date post)))
+		      "<table class=\"list-of-posts\">\n"))
+	(setq current-year (format-time-string "%Y" (org-static-blog-get-date post))))
+      (setq archive-string
+	    (concat archive-string (org-static-blog-get-post-summary post))))
+    (setq  archive-string
+	   (concat archive-string "</table>\n"))    
     (org-static-blog-with-find-file
      archive-filename
      (org-static-blog-template
       org-static-blog-publish-title
-      (concat
-       "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
-       "<table class=\"list-of-posts\">"
-       (dolist (post post-filenames)
-	 (concat
-	  (when (not (equal current-year (format-time-string "%Y" (org-static-blog-get-date post))))
-	    (format "<h2 class=\"posts-year\"> %s </h2>" (format-time-string "%Y" (org-static-blog-get-date post))))
-	  (org-static-blog-get-post-summary post)))
-       "</table>")))))
+      archive-string))))
 
 ;; (defun org-static-blog-assemble-archive ()
 ;;   "Re-render the blog archive page.
