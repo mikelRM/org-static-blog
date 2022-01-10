@@ -237,7 +237,7 @@ the variables `org-static-blog-preview-start' and
      ("ru" . "Другие публикации")
      ("by" . "Іншыя публікацыі")
      ("it" . "Altri articoli")
-     ("es" . "Otros artículos")
+     ("es" . "Todos los artículos")
      ("fr" . "Autres articles")
      ("zh" . "其他帖子")
      ("ja" . "他の投稿"))
@@ -257,7 +257,7 @@ the variables `org-static-blog-preview-start' and
      ("ru" . "Ярлыки")
      ("by" . "Ярлыкі")
      ("it" . "Categorie")
-     ("es" . "Categoría")
+     ("es" . "Categorías")
      ("fr" . "Tags")
      ("zh" . "标签")
      ("ja" . "タグ"))
@@ -267,7 +267,7 @@ the variables `org-static-blog-preview-start' and
      ("ru" . "Архив")
      ("by" . "Архіў")
      ("it" . "Archivio")
-     ("es" . "Archivo")
+     ("es" . "Lista de Artículos")
      ("fr" . "Archive")
      ("zh" . "归档")
      ("ja" . "アーカイブ"))
@@ -343,9 +343,9 @@ the variables `org-static-blog-preview-start' and
    org-static-blog-page-header
    "</head>\n"
    "<body>\n"
-   "<div id=\"preamble\" class=\"status\">"
+   ;; "<div id=\"preamble\" class=\"status\">"
    org-static-blog-page-preamble
-   "</div>\n"
+   ;; "</div>\n"
    "<div id=\"content\">\n"
    tContent
    "</div>\n"
@@ -747,12 +747,12 @@ Posts are sorted in descending time."
 This function is called for every post and prepended to the post body.
 Modify this function if you want to change a posts headline."
   (concat
-   "<div class=\"post-date\">" (format-time-string (org-static-blog-gettext 'date-format)
-						   (org-static-blog-get-date post-filename))
-   "</div>"
    "<h1 class=\"post-title\">"
    "<a href=\"" (org-static-blog-get-post-url post-filename) "\">" (org-static-blog-get-title post-filename) "</a>"
-   "</h1>\n"))
+   "</h1>\n"
+   "<div class=\"post-date-title\">" (format-time-string (org-static-blog-gettext 'date-format)
+						   (org-static-blog-get-date post-filename))
+   "</div>\n"))
 
 
 (defun org-static-blog-post-taglist (post-filename)
@@ -763,11 +763,11 @@ the taglist, in a <div id=\"taglist\">...</div> block."
         (tags (remove org-static-blog-rss-excluded-tag
                       (org-static-blog-get-tags post-filename))))
     (when (and tags org-static-blog-enable-tags)
-      (setq taglist-content (concat "<a href=\""
+      (setq taglist-content (concat "<a class=\"title\" href=\""
                                     (org-static-blog-get-absolute-url org-static-blog-tags-file)
                                     "\">" (org-static-blog-gettext 'tags) "</a>: "))
       (dolist (tag tags)
-        (setq taglist-content (concat taglist-content "<a href=\""
+        (setq taglist-content (concat taglist-content "<a class=\"tag\" href=\""
                                       (org-static-blog-get-absolute-url (concat "tag-" (downcase tag) ".html"))
                                       "\">" tag "</a> "))))
     taglist-content))
@@ -782,10 +782,10 @@ parentheses, in a <div id=\"taglist\">(...)</div> block."
                       (org-static-blog-get-tags post-filename))))
     (when (and tags org-static-blog-enable-tags)
       (dolist (tag tags)
-        (setq taglist-content (concat taglist-content ":<a href=\""
+        (setq taglist-content (concat taglist-content "<a href=\""
                                       (org-static-blog-get-absolute-url (concat "tag-" (downcase tag) ".html"))
-                                      "\">" tag "</a>"))))
-    (concat taglist-content ":")))
+                                      "\">" tag "</a>, ")))
+      (string-remove-suffix ", " taglist-content))))
 
 
 (defun org-static-blog-post-postamble (post-filename)
@@ -899,19 +899,18 @@ every blog post, but no post body."
     (setq post-filenames (sort post-filenames (lambda (x y) (time-less-p
                                                              (org-static-blog-get-date y)
                                                              (org-static-blog-get-date x)))))
-    (setq archive-string (concat "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
-				 "<table class=\"list-of-posts\">\n"))
+    (setq archive-string (concat "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"))
     (dolist (post post-filenames)
       (when (not (equal current-year (format-time-string "%Y" (org-static-blog-get-date post))))
+	(setq current-year (format-time-string "%Y" (org-static-blog-get-date post)))
 	(setq archive-string
 	      (concat archive-string
-		      "</table>\n"
-		      (format "<h2 class=\"posts-year\"> %s </h2>\n" (format-time-string "%Y" (org-static-blog-get-date post)))
-		      "<table class=\"list-of-posts\">\n"))
-	(setq current-year (format-time-string "%Y" (org-static-blog-get-date post))))
+		      (unless (string-equal current-year "0") "</table>")
+		      (format "<h2 class=\"posts-year\"> %s </h2>\n" current-year)
+		      "<table class=\"list-of-posts\">\n")))
       (setq archive-string
 	    (concat archive-string (org-static-blog-get-post-summary post))))
-    (setq  archive-string
+    (setq archive-string
 	   (concat archive-string "</table>\n"))    
     (org-static-blog-with-find-file
      archive-filename
@@ -926,19 +925,30 @@ every blog post, but no post body."
 ;;   (let ((archive-filename (concat-to-dir org-static-blog-publish-directory org-static-blog-archive-file))
 ;;         (archive-entries nil)
 ;;         (post-filenames (org-static-blog-get-post-filenames))
-;; 	(current-year 0))
+;; 	(current-year "0")
+;; 	(archive-string ""))
 ;;     (setq post-filenames (sort post-filenames (lambda (x y) (time-less-p
 ;;                                                              (org-static-blog-get-date y)
 ;;                                                              (org-static-blog-get-date x)))))
+;;     (setq archive-string (concat "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
+;; 				 "<table class=\"list-of-posts\">\n"))
+;;     (dolist (post post-filenames)
+;;       (when (not (equal current-year (format-time-string "%Y" (org-static-blog-get-date post))))
+;; 	(setq archive-string
+;; 	      (concat archive-string
+;; 		      "</table>\n"
+;; 		      (format "<h2 class=\"posts-year\"> %s </h2>\n" (format-time-string "%Y" (org-static-blog-get-date post)))
+;; 		      "<table class=\"list-of-posts\">\n"))
+;; 	(setq current-year (format-time-string "%Y" (org-static-blog-get-date post))))
+;;       (setq archive-string
+;; 	    (concat archive-string (org-static-blog-get-post-summary post))))
+;;     (setq  archive-string
+;; 	   (concat archive-string "</table>\n"))    
 ;;     (org-static-blog-with-find-file
 ;;      archive-filename
 ;;      (org-static-blog-template
 ;;       org-static-blog-publish-title
-;;       (concat
-;;        "<h1 class=\"title\">" (org-static-blog-gettext 'archive) "</h1>\n"
-;;        "<table class=\"list-of-posts\">"
-;;        (apply 'concat (mapcar 'org-static-blog-get-post-summary post-filenames))
-;;        "</table>")))))
+;;       archive-string))))
 
 (defun org-static-blog-get-post-summary (post-filename)
   "Assemble post summary for an archive page.
@@ -1050,6 +1060,9 @@ choose."
 				     ".org"))))
     (insert "#+title: " title "\n"
             "#+date: " (format-time-string "<%Y-%m-%d %H:%M>") "\n"
+	    "#+language: es\n"
+	    "#+options: toc:t tags:nil tasks:nil\n"
+
             "#+description: \n"
             "#+filetags: ")))
 
@@ -1070,11 +1083,11 @@ choose."
   :group 'org-static-blog)
 
 ;; Key bindings
-(define-key org-static-blog-mode-map (kbd "C-c C-f") 'org-static-blog-open-next-post)
-(define-key org-static-blog-mode-map (kbd "C-c C-b") 'org-static-blog-open-previous-post)
-(define-key org-static-blog-mode-map (kbd "C-c C-p") 'org-static-blog-open-matching-publish-file)
-(define-key org-static-blog-mode-map (kbd "C-c C-n") 'org-static-blog-create-new-post)
-(define-key org-static-blog-mode-map (kbd "C-c C-d") 'org-static-blog-create-new-draft)
+;; (define-key org-static-blog-mode-map (kbd "C-c C-f") 'org-static-blog-open-next-post)
+;; (define-key org-static-blog-mode-map (kbd "C-c C-b") 'org-static-blog-open-previous-post)
+;; (define-key org-static-blog-mode-map (kbd "C-c C-p") 'org-static-blog-open-matching-publish-file)
+;; (define-key org-static-blog-mode-map (kbd "C-c C-n") 'org-static-blog-create-new-post)
+;; (define-key org-static-blog-mode-map (kbd "C-c C-d") 'org-static-blog-create-new-draft)
 
 (provide 'org-static-blog)
 
