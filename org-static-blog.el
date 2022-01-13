@@ -741,15 +741,12 @@ Posts are sorted in descending time."
     "</div>\n"))))
 
 
-
 (defun org-static-blog-post-preamble (post-filename)
   "Returns the formatted date and headline of the post.
 This function is called for every post and prepended to the post body.
 Modify this function if you want to change a posts headline."
   (concat
-   "<h1 class=\"post-title\">"
-   "<a href=\"" (org-static-blog-get-post-url post-filename) "\">" (org-static-blog-get-title post-filename) "</a>"
-   "</h1>\n"
+   "<h1 class=\"post-title\">" (org-static-blog-get-title post-filename) "</h1>\n"
    "<div class=\"post-date-title\">" (format-time-string (org-static-blog-gettext 'date-format)
 						   (org-static-blog-get-date post-filename))
    "</div>\n"))
