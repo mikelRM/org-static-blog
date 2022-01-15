@@ -342,7 +342,7 @@ the variables `org-static-blog-preview-start' and
    "<title>" tTitle "</title>\n"
    org-static-blog-page-header
    "</head>\n"
-   "<body>\n"
+   "<body ontouchstart>\n"
    ;; "<div id=\"preamble\" class=\"status\">"
    org-static-blog-page-preamble
    ;; "</div>\n"
